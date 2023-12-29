@@ -1,0 +1,151 @@
+// ORACLE 2일차_2
+
+// FOREIGN KEY 외래키 제약조건
+// USER_GRADE는 참조될 부모 테이블
+CREATE TABLE USER_GRADE (
+    GRADE_CODE NUMBER PRIMARY KEY,
+    GRADE_NAME VARCHAR2(20) NOT NULL
+    );
+    
+INSERT INTO USER_GRADE VALUES(10, '일반회원');
+INSERT INTO USER_GRADE VALUES(20, '우수회원');
+INSERT INTO USER_GRADE VALUES(30, '특별회원');
+
+// 자식 테이블(USER_FOREIGN)의 한 컬럼이 부모컬럼(USER_GRADE)의 데이터를 사용함!
+CREATE TABLE USER_FOREIGN (
+    USER_NO NUMBER PRIMARY KEY,
+    USER_ID VARCHAR2(20) UNIQUE,
+    USER_PWD VARCHAR2(30) NOT NULL,
+    USER_NAME VARCHAR2(30) NOT NULL,
+    USER_GENDER VARCHAR2(10) CHECK(USER_GRADE IN('M', 'F')),
+    USER_PHONE VARCHAR2(30),
+    USER_EMAIL VARCHAR2(50),
+    USER_DATE DATE DEFAULT SYSDATE,
+    GRADE_CODE NUMBER REFERENCES USER_GRADE(GRADE_CODE) ON DELETE SET NULL // 부모 참조
+    );
+
+
+-- 참조 무결성을 보장하는 FOREIGN KEY의 역할 :
+-- 자식테이블에서 insert할 때, 부모테이블이 가지고 있는 컬럼의 필드값으로만 insert 되도록 함
+-- 부모테이블에서 데이터를 함부로 지우지 못하게 함
+
+
+INSERT INTO USER_FOREIGN VALUES (
+    1, 'khuser01', 'pass01', '일용자', 'M', '01012345678', 'khuser01@kh.or.kr'
+    , '23/12/07', 10
+    );
+INSERT INTO USER_FOREIGN VALUES (
+    2, 'khuser02', 'pass02', '일용자', 'M', '01012345678', 'khuser02@kh.or.kr'
+    , '23/12/07', 20
+    );
+
+
+-- GRADE CODE가 10이면 부모테이블이 가지고 있는 컬럼의 필드값이기 때문에 INSERT 성공 확인
+
+-- INSERT INTO USER_FOREIGN VALUES (
+-- 2, 'khuser02', 'pass02', '이용자', 'M', '01012345678', 'khuser02@kh.or.kr'
+--  , '23/12/07', 40
+--  );
+
+-- 오류 보고 -
+-- ORA-02291: 무결성 제약조건(KH.SYS_C007343)이 위배되었습니다- 부모 키가 없습니다
+-- GRADE CODE가 40이면 부모테이블이 가지고 있는 컬럼의 필드값이 아니기 때문에 INSERT 실패 확인
+
+
+// SHOP 구매 내역 테이불, SHOP_MEMBER(부모), SHOP_BUY(자식)
+CREATE TABLE SHOP_MEMBER (
+    USER_NO NUMBER UNIQUE,
+    USER_ID VARCHAR2(20) PRIMARY KEY,
+    USER_PWD VARCHAR2(30) NOT NULL,
+    USER_NAME VARCHAR2(30) NOT NULL,
+    USER_GENDER VARCHAR2(10) CHECK(USER_GENDER IN('M', 'F')),
+    USER_PHONE VARCHAR2(30),
+    USER_EMAIL VARCHAR2(50)
+    );
+
+INSERT INTO SHOP_MEMBER VALUES(
+    1, 'khuser01', 'pass01', '일용자', 'F', '01012345678', 'khuser01@kh.or.kr'
+    );
+INSERT INTO SHOP_MEMBER VALUES(
+    2, 'khuser02', 'pass02', '이용자', 'F', '01012345678', 'khuser02@kh.or.kr'
+    );
+INSERT INTO SHOP_MEMBER VALUES(
+    3, 'khuser03', 'pass03', '삼용자', 'F', '01012345678', 'khuser03@kh.or.kr'
+    );
+
+
+CREATE TABLE SHOP_BUY (
+    BUY_NO NUMBER PRIMARY KEY,
+    USER_ID  VARCHAR2(30) REFERENCES SHOP_MEMBER(USER_ID),
+    PRODUCT_NAME VARCHAR2(20),
+    REG_DATE DATE DEFAULT SYSDATE
+    );
+    
+INSERT INTO SHOP_BUY VALUES(1, 'khuser01', '야구배트', default);
+INSERT INTO SHOP_BUY VALUES(2, 'khuser02', '야구장갑', default);
+INSERT INTO SHOP_BUY VALUES(3, 'khuser03', '야구공', default);
+
+SELECT * FROM USER_GRADE;
+SELECT * FROM USER_FOREIGN;
+DELETE FROM USER_GRADE WHERE GRADE_CODE = 10;
+-- 무결성 제약조건(KH.SYS_C007343)이 위배되었습니다- 자식 레코드가 발견되었습니다
+-- 참조 무결성 보장을 위해 삭제 불가, 부모테이블의 데이터 삭제 불가
+
+-- 그럼에도 불구하고 삭제를 허용해야 되는 경우가 있고
+-- 그렇게 하기 위해서 삭제 옵션을 외래키 설정할 때 같이 해줘야 함
+
+// 외래키 삭제 옵션
+// 1. 기본 옵션, ON DELETE RESTRICTED
+// 2. 연관된 모든 것 삭제 옵션, ON DELETE CASCADE(부모, 자식 모든 데이터를 삭제)
+// 3. NULL로 만드는 옵션, ON DELETE SET NULL(부모는 삭제되고, 자식의 남아있는 데이터는 NULL로 남겨줌)
+// > 해당 옵션은 외래키 설정시에 같이 적어주어야 적용됨
+
+// DEPARTMENT 테이블
+CREATE TABLE DEPARTMENT
+(
+    DEPT_ID CHAR(2),
+    DEPT_TITLE VARCHAR(35),
+    LOCATION_ID CHAR(2)
+);
+
+SELECT DEPT_ID, DEPT_TITLE, LOCATION_ID FROM department;
+SELECT * FROM DEPARTMENT;
+
+INSERT INTO DEPARTMENT VALUES('D1', '인사관리부', 'L1');
+INSERT INTO DEPARTMENT VALUES('D2', '회계관리부', 'L1');
+INSERT INTO DEPARTMENT VALUES('D3', '마케팅부', 'L1');
+INSERT INTO DEPARTMENT VALUES('D4', '국내영업부', 'L1');
+INSERT INTO DEPARTMENT VALUES('D5', '해외영업1부', 'L2');
+INSERT INTO DEPARTMENT VALUES('D6', '해외영업3부', 'L3');
+INSERT INTO DEPARTMENT VALUES('D7', '해외영업3부', 'L4');
+INSERT INTO DEPARTMENT VALUES('D8', '기술지원부', 'L5');
+INSERT INTO DEPARTMENT VALUES('D9', '총무부', 'L1');
+
+// 컬럼 수정
+UPDATE DEPARTMENT SET DEPT_TITLE = '해외영업2부' WHERE DEPT_ID = 'D6';
+
+// 코멘트 작성
+COMMENT ON COLUMN DEPARTMENT.DEPT_ID IS '부서코드';
+COMMENT ON COLUMN DEPARTMENT.DEPT_TITLE IS '부서명';
+COMMENT ON COLUMN DEPARTMENT.LOCATION_ID IS '지역코드';
+
+// EMPLOYEE 테이블 코멘트 작성
+COMMENT ON COLUMN EMPLOYEE.EMP_ID IS '사원번호';
+COMMENT ON COLUMN EMPLOYEE.EMP_NAME  IS '직원명';
+COMMENT ON COLUMN EMPLOYEE.EMP_NO IS '주민등록번호';
+COMMENT ON COLUMN EMPLOYEE.EMAIL IS '이메일';
+COMMENT ON COLUMN EMPLOYEE.PHONE IS '전화번호';
+COMMENT ON COLUMN EMPLOYEE.DEPT_CODE IS '부서코드';
+COMMENT ON COLUMN EMPLOYEE.JOB_CODE IS '직급코드';
+COMMENT ON COLUMN EMPLOYEE.SAL_LEVEL IS '급여등급';
+COMMENT ON COLUMN EMPLOYEE.SALARY IS '급여';
+COMMENT ON COLUMN EMPLOYEE.BONUS IS '보너스율';
+COMMENT ON COLUMN EMPLOYEE.MANAGER_ID IS '관리자사번';
+COMMENT ON COLUMN EMPLOYEE.HIRE_DATE IS '입사일';
+COMMENT ON COLUMN EMPLOYEE.ENT_DATE IS '퇴사일';
+COMMENT ON COLUMN EMPLOYEE.ENT_YN IS '퇴직여부';
+
+
+-----------------------------------------------
+                    COMMIT;
+-----------------------------------------------
